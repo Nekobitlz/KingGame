@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">KingGame</string>
+    <string name="rule_1_title">«Не брать взяток»</string>
+    <string name="rule_1_description">Стремись не брать взятку, за каждую -2 очка!</string>
+
+    <string name="rule_2_title">«Не брать черви»</string>
+    <string name="rule_2_description">Не бери взятку, в которой есть черви! За каждую червовую карту -2 очка.</string>
+
+    <string name="rule_3_title">Не брать мальчиков»</string>
+    <string name="rule_3_description">Не бери валетов! За каждого валета -4 очка.</string>
+
+    <string name="rule_4_title">«Не брать девочек»</string>
+    <string name="rule_4_description">Не бери дам! За каждую даму -4 очка. </string>
+
+    <string name="rule_5_title">«Не брать 2х последних»</string>
+    <string name="rule_5_description">Будь особенно внимателен в конце! За каждую взятку из двух последних -8 очков!</string>
+
+    <string name="rule_6_title">«Не брать Кинга»</string>
+    <string name="rule_6_description">Кинг – червовый король. Избегай взяток с ним! За взятого Кинга -16 очков.</string>
+
+    <string name="rule_7_title">«Бери взятку!»</string>
+    <string name="rule_7_description">Это игра на положительные очки, старайся забрать себе как можно больше взяток!</string>
+
+    <string name="game_over">Игра окончена</string>
+    <string name="game_paused">Игра приостановлена</string>
+    <string name="game_prepared">Ожидаем начала игры</string>
+</resources>
