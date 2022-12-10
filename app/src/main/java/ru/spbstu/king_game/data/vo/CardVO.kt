@@ -6,12 +6,8 @@ import ru.spbstu.king_game.data.dto.card.Magnitude
 class CardVO(
     val suit: CardSuit,
     val magnitude: Magnitude,
-    val cardStatus: CardStatus,
-    x: Int,
-    y: Int,
-    width: Int,
-    height: Int,
-): BaseFieldVO(x, y, width, height)
+    var fieldState: BaseFieldObject,// = BaseFieldObject(110, 10, 200, 200),
+)
 
 enum class CardStatus {
     FACE, BACK

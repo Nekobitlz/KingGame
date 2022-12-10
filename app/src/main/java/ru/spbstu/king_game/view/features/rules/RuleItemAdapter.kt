@@ -4,7 +4,7 @@ import androidx.recyclerview.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.TextView
-import ru.spbstu.king_game.databinding.FragmentRulesBinding
+import ru.spbstu.king_game.databinding.ItemRuleBinding
 import ru.spbstu.king_game.view.features.rules.data.RuleItem
 
 class RuleItemAdapter(
@@ -13,7 +13,7 @@ class RuleItemAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return ViewHolder(
-            FragmentRulesBinding.inflate(
+            ItemRuleBinding.inflate(
                 LayoutInflater.from(parent.context),
                 parent,
                 false
@@ -28,7 +28,7 @@ class RuleItemAdapter(
 
     override fun getItemCount(): Int = values.size
 
-    inner class ViewHolder(binding: FragmentRulesBinding) : RecyclerView.ViewHolder(binding.root) {
+    class ViewHolder(binding: ItemRuleBinding) : RecyclerView.ViewHolder(binding.root) {
         private val tvTitle: TextView = binding.tvTitle
         private val tvDescription: TextView = binding.tvDescription
 

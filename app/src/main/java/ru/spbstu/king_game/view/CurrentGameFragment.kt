@@ -10,18 +10,21 @@ import com.afollestad.materialdialogs.MaterialDialog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import ru.spbstu.king_game.R
 import ru.spbstu.king_game.databinding.FragmentCurrentGameBinding
 import ru.spbstu.king_game.engine.controller.GameStateController
 import ru.spbstu.king_game.engine.data.GameState
+import ru.spbstu.king_game.engine.repository.CurrentUserRepository
 
 class CurrentGameFragment : Fragment() {
 
     private var _binding: FragmentCurrentGameBinding? = null
     private val binding get() = _binding!!
 
+    private val currentUserRepository = CurrentUserRepository()
     private val gameStateController = GameStateController()
 
     override fun onCreateView(
@@ -34,33 +37,33 @@ class CurrentGameFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        CoroutineScope(Dispatchers.Main).launch {
-            gameStateController.stateSharedFlow.onEach {
-                when (it) {
-                    GameState.Finished -> {
-                        MaterialDialog(requireContext())
-                            .title(R.string.game_over)
-                            .show()
-                    }
-                    GameState.Paused -> {
-                        MaterialDialog(requireContext())
-                            .title(R.string.game_paused)
-                            .show()
-                    }
-                    GameState.Prepared -> {
-                        MaterialDialog(requireContext())
-                            .title(R.string.game_prepared)
-                            .show()
-                    }
-                    GameState.Started -> {
-                        binding.fieldView.isVisible = true
-                        binding.fieldView.invalidate()
-                    }
+        binding.fieldView.currentUserRepository = currentUserRepository
+        gameStateController.gameStateFlow.onEach {
+            when (it) {
+                GameState.Finished -> {
+                    MaterialDialog(requireContext())
+                        .title(R.string.game_over)
+                        .show()
                 }
-            }.collect()
-            gameStateController.fieldStateSharedFlow.onEach {
-                binding.fieldView.fieldState = it
-            }.collect()
-        }
+                GameState.Paused -> {
+                    MaterialDialog(requireContext())
+                        .title(R.string.game_paused)
+                        .show()
+                }
+                GameState.Prepared -> {
+                    MaterialDialog(requireContext())
+                        .title(R.string.game_prepared)
+                        .show()
+                }
+                GameState.Started -> {
+                    binding.fieldView.isVisible = true
+                    binding.fieldView.invalidate()
+                }
+            }
+        }.launchIn(CoroutineScope(Dispatchers.Main))
+        gameStateController.fieldStateFlow.onEach {
+            binding.fieldView.fieldState = it
+            binding.fieldView.invalidate()
+        }.launchIn(CoroutineScope(Dispatchers.Main))
     }
 }

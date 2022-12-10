@@ -16,7 +16,7 @@ class MainActivity : AppCompatActivity() {
 
         if (savedInstanceState == null) {
             // todo check isAuthorized)
-            Navigator.toCurrentGame()
+            Navigator.toStart()
         }
     }
 }

@@ -8,12 +8,17 @@ import com.google.android.material.snackbar.Snackbar
 import ru.spbstu.king_game.MainActivity
 import ru.spbstu.king_game.R
 import ru.spbstu.king_game.view.CurrentGameFragment
+import ru.spbstu.king_game.view.StartFragment
 
 object Navigator {
     var activity: MainActivity? = null
 
     fun toCurrentGame() {
-        navigateTo(CurrentGameFragment())
+        navigateTo(CurrentGameFragment(), addToBackstack = true)
+    }
+
+    fun toStart() {
+        navigateTo(StartFragment())
     }
 
     fun showSnackBar(view: View, text: String) {

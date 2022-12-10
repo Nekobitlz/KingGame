@@ -4,7 +4,7 @@ import ru.spbstu.king_game.data.dto.player.User
 
 class CurrentUserRepository {
 
-    val currentUserId get() = currentUser?.id
+    val currentUserId get() = "0"//currentUser?.id
 
     private var currentUser: User? = null
 

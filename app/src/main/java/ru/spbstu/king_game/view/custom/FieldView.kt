@@ -2,16 +2,17 @@ package ru.spbstu.king_game.view.custom
 
 import android.content.Context
 import android.graphics.*
+import android.graphics.drawable.RotateDrawable
 import android.util.AttributeSet
-import android.util.Size
 import android.view.MotionEvent
 import android.view.View
 import androidx.core.content.ContextCompat
 import ru.spbstu.king_game.R
-import ru.spbstu.king_game.data.vo.CardStatus
+import ru.spbstu.king_game.data.vo.PlayerVO
 import ru.spbstu.king_game.engine.data.FieldState
-import ru.spbstu.king_game.engine.data.GameState
 import ru.spbstu.king_game.engine.repository.CurrentUserRepository
+import ru.spbstu.king_game.view.utils.spToPx
+import ru.spbstu.king_game.view.utils.dpToPx
 
 
 class FieldView @JvmOverloads constructor(
@@ -26,17 +27,18 @@ class FieldView @JvmOverloads constructor(
     var fieldState: FieldState? = null
     var currentUserRepository: CurrentUserRepository? = null
 
-    val cardOffset = 40
+    private val closedCardDrawable = RotateDrawable().apply {
+        drawable = ContextCompat.getDrawable(context, R.drawable.closed_card_image)
+    }
+    private val openedCardDrawable = ContextCompat.getDrawable(context, R.drawable.valet_card)!!
 
-    val cardSize = Size(200, 280)
-    val closedCardDrawable = ContextCompat.getDrawable(context, R.drawable.closed_card_image)!!
-    val openedCardDrawable = ContextCompat.getDrawable(context, R.drawable.valet_card)!!
-
-    val textPaint = Paint().apply {
+    private val textPaint = Paint().apply {
         color = Color.WHITE
-        textSize = 40f
+        textSize = 13.spToPx
         isAntiAlias = true
     }
+
+    private val yourStepText = resources.getString(R.string.your_step)
 
     init {
         setBackgroundResource(R.drawable.table_background)
@@ -44,53 +46,140 @@ class FieldView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         val fieldState = fieldState ?: return
-        var angle = 0f
-        for (player in fieldState.players.filterNot { it.id == currentUserRepository?.currentUserId }) {
-            player.cards.forEachIndexed { i, cardVO ->
-                val offset = cardOffset * i
-                val drawable = if (cardVO.cardStatus == CardStatus.BACK) {
-                    closedCardDrawable
-                } else {
-                    openedCardDrawable
-                }
-                drawable.setBounds(
-                    cardVO.left + offset,
-                    cardVO.top,
-                    cardVO.right + offset,
-                    cardVO.bottom
-                )
-                drawable.draw(canvas)
-            }
-            canvas.drawText(player.name, 15f, 550f, textPaint)
-            canvas.save()
-            angle += 90f
-            canvas.rotate(angle, width / 2f, height / 2f)
+        val enemies = fieldState.players.filterNot {
+            currentUserRepository?.isCurrent(it.id) ?: false
         }
-
-        getCurrentPlayer()?.let {
-            val bottomOffset = (width - cardSize.width) / it.cards.size
-            it.cards.forEachIndexed { i, cardVO ->
-                val offset = i * bottomOffset
-                openedCardDrawable.setBounds(
-                    cardVO.left + offset,
-                    cardVO.top,
-                    cardVO.right + offset,
-                    cardVO.bottom
-                )
-                openedCardDrawable.draw(canvas)
-            }
-            // todo text from resource
-            canvas.drawText("Ваш ход", 480f, 1430f, textPaint)
-        }
+        drawCurrentPlayer(canvas)
+        drawFirstEnemy(canvas, enemies.getOrNull(0))
+        drawSecondEnemy(canvas, enemies.getOrNull(1))
+        drawThirdEnemy(canvas, enemies.getOrNull(2))
 
         for (card in fieldState.deck) {
+            val cardState = card.fieldState
             openedCardDrawable.setBounds(
-                card.left,
-                card.top,
-                card.right,
-                card.bottom
+                cardState.left,
+                cardState.top,
+                cardState.right,
+                cardState.bottom
             )
             openedCardDrawable.draw(canvas)
+        }
+    }
+
+    private fun drawCurrentPlayer(canvas: Canvas) {
+        getCurrentPlayer()?.let {
+            val maxWidth = (width - 16.dpToPx.toInt() * 2)
+            val startOffset = 8.dpToPx.toInt()
+            val bottomOffset = maxWidth / it.cards.size
+            it.cards.forEachIndexed { i, card ->
+                val offset = startOffset + i * bottomOffset
+                val cardField = card.fieldState
+                if (draggingState == null || draggingState?.dragObject?.id != cardField.id) {
+                    cardField.x = offset
+                    cardField.y = height - cardField.height
+                }
+                openedCardDrawable.setBounds(
+                    cardField.left,
+                    cardField.top,
+                    cardField.right,
+                    cardField.bottom
+                )
+                openedCardDrawable.draw(canvas)
+                if (i == it.cards.lastIndex) {
+                    canvas.drawText(
+                        yourStepText,
+                        width / 2f,
+                        cardField.top.toFloat() - 14.dpToPx,
+                        textPaint
+                    )
+                }
+            }
+        }
+    }
+
+    private fun drawFirstEnemy(canvas: Canvas, player: PlayerVO?) {
+        player ?: return
+        val startOffset = width / 5
+        val maxWidth = width / 2
+        val cardOffset = maxWidth / player.cards.size
+        player.cards.forEachIndexed { i, card ->
+            val offset = startOffset + cardOffset * i
+            val drawable = closedCardDrawable
+            val cardField = card.fieldState
+            cardField.x = offset
+            drawable.level = 0
+            drawable.setBounds(
+                cardField.left,
+                cardField.top,
+                cardField.right,
+                cardField.bottom
+            )
+            drawable.draw(canvas)
+            if (i == 0) {
+                canvas.drawText(
+                    player.name,
+                    cardField.left.toFloat() + 14.dpToPx,
+                    cardField.bottom.toFloat() + 14.dpToPx, textPaint
+                )
+            }
+        }
+    }
+
+    private fun drawSecondEnemy(canvas: Canvas, player: PlayerVO?) {
+        player ?: return
+        val maxHeight = height / 3
+        val cardOffset = maxHeight / player.cards.size
+        val startOffset = height / 5 * 2
+        player.cards.forEachIndexed { i, card ->
+            val offset = startOffset + cardOffset * i
+            val drawable = closedCardDrawable
+            val cardField = card.fieldState
+            cardField.x = -cardField.width / 2
+            cardField.y = height - offset
+            drawable.level = 2500
+            drawable.setBounds(
+                cardField.left,
+                cardField.top,
+                cardField.right,
+                cardField.bottom
+            )
+            drawable.draw(canvas)
+            if (i == player.cards.lastIndex) {
+                canvas.drawText(
+                    player.name,
+                    cardField.x + cardField.width / 2f + 14.dpToPx,
+                    cardField.top.toFloat(), textPaint
+                )
+            }
+        }
+    }
+
+    private fun drawThirdEnemy(canvas: Canvas, player: PlayerVO?) {
+        player ?: return
+        val maxHeight = height / 3
+        val cardOffset = maxHeight / player.cards.size
+        val startOffset = height / 5 * 2
+        player.cards.forEachIndexed { i, card ->
+            val offset = startOffset + cardOffset * i
+            val drawable = closedCardDrawable
+            val cardField = card.fieldState
+            cardField.x = width - cardField.width / 2
+            cardField.y = height - offset
+            drawable.level = 7500
+            drawable.setBounds(
+                cardField.left,
+                cardField.top,
+                cardField.right,
+                cardField.bottom
+            )
+            drawable.draw(canvas)
+            if (i == player.cards.lastIndex) {
+                canvas.drawText(
+                    player.name,
+                    cardField.x.toFloat() - 14.dpToPx,
+                    cardField.top.toFloat(), textPaint
+                )
+            }
         }
     }
 
@@ -105,22 +194,24 @@ class FieldView @JvmOverloads constructor(
             MotionEvent.ACTION_DOWN -> {
                 // If the touch is within the square
                 val currentPlayer = getCurrentPlayer() ?: return false
-                for (card in currentPlayer.cards)
-                    if (evX >= card.left && evX <= card.right
-                        && evY >= card.top && evY <= card.bottom
+                for (card in currentPlayer.cards) {
+                    val cardState = card.fieldState
+                    if (evX >= cardState.left && evX <= cardState.right
+                        && evY >= cardState.top && evY <= cardState.bottom
                     ) {
                         // Activate the drag mode
                         draggingState = DraggingState(
-                            evX - card.x, evY - card.y,
-                            card, true
+                            evX - cardState.x, evY - cardState.y,
+                            cardState, true
                         )
-                    }
-                draggingState?.let {
-                    if (it.isDragging) {
-                        // Defines new coordinates for drawing
-                        it.dragObject.x = (evX - it.dragX).toInt()
-                        it.dragObject.y = (evY - it.dragY).toInt()
-                        invalidate()
+                        draggingState?.let {
+                            if (it.isDragging) {
+                                // Defines new coordinates for drawing
+                                it.dragObject.x = (evX - it.dragX).toInt()
+                                it.dragObject.y = (evY - it.dragY).toInt()
+                                invalidate()
+                            }
+                        }
                     }
                 }
             }
@@ -131,7 +222,12 @@ class FieldView @JvmOverloads constructor(
                     invalidate()
                 }
             }
-            MotionEvent.ACTION_UP -> draggingState?.isDragging = false
+            MotionEvent.ACTION_UP -> {
+                draggingState?.isDragging = false
+                draggingState?.reset()
+                draggingState = null
+                invalidate()
+            }
         }
         return true
     }

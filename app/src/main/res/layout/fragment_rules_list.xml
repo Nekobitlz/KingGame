@@ -11,4 +11,4 @@
     android:background="@drawable/table_background"
     app:layoutManager="LinearLayoutManager"
     tools:context=".view.features.rules.RulesFragment"
-    tools:listitem="@layout/fragment_rules" />
+    tools:listitem="@layout/item_rule" />
