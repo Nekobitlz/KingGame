@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.*
 import android.graphics.drawable.RotateDrawable
 import android.util.AttributeSet
+import android.util.Size
 import android.view.MotionEvent
 import android.view.View
 import androidx.core.content.ContextCompat
@@ -13,6 +14,7 @@ import ru.spbstu.king_game.engine.data.FieldState
 import ru.spbstu.king_game.engine.repository.CurrentUserRepository
 import ru.spbstu.king_game.view.utils.spToPx
 import ru.spbstu.king_game.view.utils.dpToPx
+import java.lang.Integer.min
 
 
 class FieldView @JvmOverloads constructor(
@@ -32,16 +34,25 @@ class FieldView @JvmOverloads constructor(
     }
     private val openedCardDrawable = ContextCompat.getDrawable(context, R.drawable.valet_card)!!
 
+    private val cardSize = Size(65.dpToPx.toInt(), 85.dpToPx.toInt())
     private val textPaint = Paint().apply {
         color = Color.WHITE
         textSize = 13.spToPx
         isAntiAlias = true
     }
-
+    private val borderCardPaint = Paint().apply {
+        style = Paint.Style.STROKE
+        color = Color.WHITE
+        alpha = 255 / 4
+        isAntiAlias = true
+    }
     private val yourStepText = resources.getString(R.string.your_step)
+    private val measuredTextSize = textPaint.measureText(yourStepText) / 2
+
+    private val playersCardRect = mutableMapOf<String, RectF>()
 
     init {
-        setBackgroundResource(R.drawable.table_background)
+        setBackgroundResource(R.drawable.rectangle_background)
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -49,10 +60,10 @@ class FieldView @JvmOverloads constructor(
         val enemies = fieldState.players.filterNot {
             currentUserRepository?.isCurrent(it.id) ?: false
         }
-        drawCurrentPlayer(canvas)
         drawFirstEnemy(canvas, enemies.getOrNull(0))
         drawSecondEnemy(canvas, enemies.getOrNull(1))
         drawThirdEnemy(canvas, enemies.getOrNull(2))
+        drawCurrentPlayer(canvas)
 
         for (card in fieldState.deck) {
             val cardState = card.fieldState
@@ -68,11 +79,21 @@ class FieldView @JvmOverloads constructor(
 
     private fun drawCurrentPlayer(canvas: Canvas) {
         getCurrentPlayer()?.let {
-            val maxWidth = (width - 16.dpToPx.toInt() * 2)
-            val startOffset = 8.dpToPx.toInt()
-            val bottomOffset = maxWidth / it.cards.size
+            val topPadding = 2.dpToPx
+            val startPoint = PointF(width / 2f - cardSize.width / 2f, height / 2f + topPadding)
+            drawCardBorder(canvas, startPoint, it.id)
+
+            val maxWidth = min(width - 16.dpToPx.toInt() * 2, cardSize.width * it.cards.size)
+            val cardOffset = maxWidth / it.cards.size
+            val startOffset = (width - cardOffset * it.cards.size) / 2
+            canvas.drawText(
+                yourStepText,
+                width / 2f - measuredTextSize,
+                height - cardSize.height - 14.dpToPx,
+                textPaint
+            )
             it.cards.forEachIndexed { i, card ->
-                val offset = startOffset + i * bottomOffset
+                val offset = startOffset + i * cardOffset
                 val cardField = card.fieldState
                 if (draggingState == null || draggingState?.dragObject?.id != cardField.id) {
                     cardField.x = offset
@@ -85,23 +106,21 @@ class FieldView @JvmOverloads constructor(
                     cardField.bottom
                 )
                 openedCardDrawable.draw(canvas)
-                if (i == it.cards.lastIndex) {
-                    canvas.drawText(
-                        yourStepText,
-                        width / 2f,
-                        cardField.top.toFloat() - 14.dpToPx,
-                        textPaint
-                    )
-                }
             }
         }
     }
 
     private fun drawFirstEnemy(canvas: Canvas, player: PlayerVO?) {
         player ?: return
-        val startOffset = width / 5
-        val maxWidth = width / 2
+        val topPadding = 2.dpToPx
+        val startPoint = PointF(
+            width / 2f - cardSize.width / 2f,
+            height / 2f - cardSize.height - topPadding)
+        drawCardBorder(canvas, startPoint, player.id)
+
+        val maxWidth = min(width / 2, cardSize.width * player.cards.size)
         val cardOffset = maxWidth / player.cards.size
+        val startOffset = (width - cardOffset * player.cards.size) / 2
         player.cards.forEachIndexed { i, card ->
             val offset = startOffset + cardOffset * i
             val drawable = closedCardDrawable
@@ -127,9 +146,17 @@ class FieldView @JvmOverloads constructor(
 
     private fun drawSecondEnemy(canvas: Canvas, player: PlayerVO?) {
         player ?: return
-        val maxHeight = height / 3
+
+        val rightPadding = 4.dpToPx
+        val startPoint = PointF(
+            width / 2f - cardSize.width * 1.5f - rightPadding,
+            height / 2f - cardSize.height / 2f
+        )
+        drawCardBorder(canvas, startPoint, player.id)
+
+        val maxHeight = min(height / 3, cardSize.height * player.cards.size)
         val cardOffset = maxHeight / player.cards.size
-        val startOffset = height / 5 * 2
+        val startOffset = (height - cardOffset * player.cards.size) / 2
         player.cards.forEachIndexed { i, card ->
             val offset = startOffset + cardOffset * i
             val drawable = closedCardDrawable
@@ -156,9 +183,17 @@ class FieldView @JvmOverloads constructor(
 
     private fun drawThirdEnemy(canvas: Canvas, player: PlayerVO?) {
         player ?: return
-        val maxHeight = height / 3
+
+        val leftPadding = 4.dpToPx
+        val startPoint = PointF(
+            width / 2f + cardSize.width / 2f + leftPadding,
+            height / 2f - cardSize.height / 2f
+        )
+        drawCardBorder(canvas, startPoint, player.id)
+
+        val maxHeight = min(height / 3, cardSize.height * player.cards.size)
         val cardOffset = maxHeight / player.cards.size
-        val startOffset = height / 5 * 2
+        val startOffset = (height - cardOffset * player.cards.size) / 2
         player.cards.forEachIndexed { i, card ->
             val offset = startOffset + cardOffset * i
             val drawable = closedCardDrawable
@@ -181,6 +216,17 @@ class FieldView @JvmOverloads constructor(
                 )
             }
         }
+    }
+
+    private fun drawCardBorder(canvas: Canvas, startPoint: PointF, id: String) {
+        val roundedRadius = 4.dpToPx
+        val rectF = RectF(
+            startPoint.x, startPoint.y,
+            startPoint.x + cardSize.width.toFloat(),
+            startPoint.y + cardSize.height.toFloat()
+        )
+        playersCardRect[id] = rectF
+        canvas.drawRoundRect(rectF, roundedRadius, roundedRadius, borderCardPaint)
     }
 
     private fun getCurrentPlayer() = fieldState?.players?.find {
@@ -222,10 +268,25 @@ class FieldView @JvmOverloads constructor(
                     invalidate()
                 }
             }
-            MotionEvent.ACTION_UP -> {
-                draggingState?.isDragging = false
-                draggingState?.reset()
-                draggingState = null
+            MotionEvent.ACTION_UP -> draggingState?.let {
+                it.isDragging = false
+                val player = getCurrentPlayer() ?: return false
+                val leftPadding = cardSize.width / 2
+                val topPadding = cardSize.height / 2
+                val rect = playersCardRect[player.id]?.apply {
+                    set(left - leftPadding, top - topPadding,
+                        right + leftPadding, bottom + topPadding)
+                }
+                if (rect != null
+                    && it.dragObject.x.toFloat() in rect.left..rect.right
+                    && it.dragObject.y.toFloat() in rect.top..rect.bottom
+                ) {
+                    it.dragObject.x = (rect.left + leftPadding).toInt()
+                    it.dragObject.y = (rect.top + topPadding).toInt()
+                } else {
+                    draggingState?.reset()
+                    draggingState = null
+                }
                 invalidate()
             }
         }
