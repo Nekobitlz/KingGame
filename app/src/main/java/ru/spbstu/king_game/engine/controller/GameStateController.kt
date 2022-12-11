@@ -33,4 +33,8 @@ class GameStateController {
         // todo get state from backend
         _gameStateFlow.tryEmit(GameState.Started)
     }
+
+    fun onCardSelected(card: CardVO): Unit? {
+        TODO("Not yet implemented")
+    }
 }

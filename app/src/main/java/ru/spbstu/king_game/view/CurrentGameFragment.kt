@@ -18,6 +18,7 @@ import ru.spbstu.king_game.databinding.FragmentCurrentGameBinding
 import ru.spbstu.king_game.engine.controller.GameStateController
 import ru.spbstu.king_game.engine.data.GameState
 import ru.spbstu.king_game.engine.repository.CurrentUserRepository
+import ru.spbstu.king_game.navigation.Navigator
 
 class CurrentGameFragment : Fragment() {
 
@@ -38,6 +39,10 @@ class CurrentGameFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.fieldView.currentUserRepository = currentUserRepository
+        binding.fieldView.onCardSelected = {
+            Navigator.showSnackBar(view, "onCardSelected")
+            //gameStateController.onCardSelected(it)
+        }
         gameStateController.gameStateFlow.onEach {
             when (it) {
                 GameState.Finished -> {

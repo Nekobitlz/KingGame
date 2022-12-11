@@ -1,5 +1,7 @@
 package ru.spbstu.king_game.view.custom
 
+import android.animation.PropertyValuesHolder
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.*
 import android.graphics.drawable.RotateDrawable
@@ -9,13 +11,16 @@ import android.view.MotionEvent
 import android.view.View
 import androidx.core.content.ContextCompat
 import ru.spbstu.king_game.R
+import ru.spbstu.king_game.data.vo.BaseFieldObject
+import ru.spbstu.king_game.data.vo.CardVO
 import ru.spbstu.king_game.data.vo.PlayerVO
 import ru.spbstu.king_game.engine.data.FieldState
 import ru.spbstu.king_game.engine.repository.CurrentUserRepository
-import ru.spbstu.king_game.view.utils.spToPx
 import ru.spbstu.king_game.view.utils.dpToPx
+import ru.spbstu.king_game.view.utils.spToPx
 import java.lang.Integer.min
 
+private const val CLICK_THRESHOLD: Int = 100
 
 class FieldView @JvmOverloads constructor(
     context: Context,
@@ -28,6 +33,7 @@ class FieldView @JvmOverloads constructor(
 
     var fieldState: FieldState? = null
     var currentUserRepository: CurrentUserRepository? = null
+    var onCardSelected: (CardVO) -> Unit? = { }
 
     private val closedCardDrawable = RotateDrawable().apply {
         drawable = ContextCompat.getDrawable(context, R.drawable.closed_card_image)
@@ -115,7 +121,8 @@ class FieldView @JvmOverloads constructor(
         val topPadding = 2.dpToPx
         val startPoint = PointF(
             width / 2f - cardSize.width / 2f,
-            height / 2f - cardSize.height - topPadding)
+            height / 2f - cardSize.height - topPadding
+        )
         drawCardBorder(canvas, startPoint, player.id)
 
         val maxWidth = min(width / 2, cardSize.width * player.cards.size)
@@ -238,25 +245,18 @@ class FieldView @JvmOverloads constructor(
         val evY = event.y
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                // If the touch is within the square
-                val currentPlayer = getCurrentPlayer() ?: return false
-                for (card in currentPlayer.cards) {
+                val card = getTouchedCard(evX, evY)
+                if (card != null) {
                     val cardState = card.fieldState
-                    if (evX >= cardState.left && evX <= cardState.right
-                        && evY >= cardState.top && evY <= cardState.bottom
-                    ) {
-                        // Activate the drag mode
-                        draggingState = DraggingState(
-                            evX - cardState.x, evY - cardState.y,
-                            cardState, true
-                        )
-                        draggingState?.let {
-                            if (it.isDragging) {
-                                // Defines new coordinates for drawing
-                                it.dragObject.x = (evX - it.dragX).toInt()
-                                it.dragObject.y = (evY - it.dragY).toInt()
-                                invalidate()
-                            }
+                    draggingState = DraggingState(
+                        evX - cardState.x, evY - cardState.y,
+                        cardState, true
+                    )
+                    draggingState?.let {
+                        if (it.isDragging) {
+                            it.dragObject.x = (evX - it.dragX).toInt()
+                            it.dragObject.y = (evY - it.dragY).toInt()
+                            invalidate()
                         }
                     }
                 }
@@ -271,18 +271,23 @@ class FieldView @JvmOverloads constructor(
             MotionEvent.ACTION_UP -> draggingState?.let {
                 it.isDragging = false
                 val player = getCurrentPlayer() ?: return false
+                if (event.eventTime - event.downTime < CLICK_THRESHOLD) {
+                    return onCardClick(event)
+                }
                 val leftPadding = cardSize.width / 2
                 val topPadding = cardSize.height / 2
-                val rect = playersCardRect[player.id]?.apply {
-                    set(left - leftPadding, top - topPadding,
-                        right + leftPadding, bottom + topPadding)
+                val rect = RectF(playersCardRect[player.id]).apply {
+                    set(
+                        left - leftPadding, top - topPadding,
+                        right + leftPadding, bottom + topPadding
+                    )
                 }
-                if (rect != null
-                    && it.dragObject.x.toFloat() in rect.left..rect.right
-                    && it.dragObject.y.toFloat() in rect.top..rect.bottom
-                ) {
+                if (cardInRect(it.dragObject, rect)) {
                     it.dragObject.x = (rect.left + leftPadding).toInt()
                     it.dragObject.y = (rect.top + topPadding).toInt()
+                    getTouchedCard(evX, evY)?.let { card ->
+                        onCardSelected.invoke(card)
+                    }
                 } else {
                     draggingState?.reset()
                     draggingState = null
@@ -291,5 +296,49 @@ class FieldView @JvmOverloads constructor(
             }
         }
         return true
+    }
+
+    private fun cardInRect(
+        dragObject: BaseFieldObject?,
+        rect: RectF?
+    ) = dragObject != null && rect != null
+            && dragObject.x.toFloat() in rect.left..rect.right
+            && dragObject.y.toFloat() in rect.top..rect.bottom
+
+    private fun getTouchedCard(evX: Float, evY: Float): CardVO? {
+        val currentPlayer = getCurrentPlayer() ?: return null
+        for (card in currentPlayer.cards) {
+            val cardState = card.fieldState
+            if (evX >= cardState.left && evX <= cardState.right
+                && evY >= cardState.top && evY <= cardState.bottom
+            ) {
+                return card
+            }
+        }
+        return null
+    }
+
+    private fun onCardClick(e: MotionEvent): Boolean {
+        val currentPlayer = getCurrentPlayer() ?: return false
+        val card = getTouchedCard(e.x, e.y) ?: return false
+        animateCardToDeck(card.fieldState, currentPlayer)
+        onCardSelected.invoke(card)
+        return true
+    }
+
+    private fun animateCardToDeck(cardState: BaseFieldObject, player: PlayerVO) {
+        val rect = playersCardRect[player.id] ?: return
+
+        val pvhX = PropertyValuesHolder.ofInt("x", cardState.x, rect.left.toInt())
+        val pvhY = PropertyValuesHolder.ofInt("y", cardState.y, rect.top.toInt())
+
+        val translator = ValueAnimator.ofPropertyValuesHolder(pvhX, pvhY)
+        translator.addUpdateListener { valueAnimator ->
+            cardState.x = valueAnimator.getAnimatedValue("x") as Int
+            cardState.y = valueAnimator.getAnimatedValue("y") as Int
+            invalidate()
+        }
+        translator.duration = 300
+        translator.start()
     }
 }
