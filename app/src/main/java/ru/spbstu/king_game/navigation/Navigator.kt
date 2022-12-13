@@ -9,6 +9,7 @@ import ru.spbstu.king_game.MainActivity
 import ru.spbstu.king_game.R
 import ru.spbstu.king_game.view.CurrentGameFragment
 import ru.spbstu.king_game.view.StartFragment
+import ru.spbstu.king_game.view.features.rules.RulesFragment
 
 object Navigator {
     var activity: MainActivity? = null
@@ -19,6 +20,10 @@ object Navigator {
 
     fun toStart() {
         navigateTo(StartFragment())
+    }
+
+    fun toRules() {
+        navigateTo(RulesFragment(), addToBackstack = true)
     }
 
     fun showSnackBar(view: View, text: String) {

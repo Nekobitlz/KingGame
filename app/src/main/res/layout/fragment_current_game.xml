@@ -4,11 +4,72 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/rectangle_background"
+    android:orientation="vertical"
     tools:context=".MainActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/btn_settings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?selectableItemBackground"
+            android:padding="18dp"
+            android:src="@drawable/ic_settings" />
+
+        <ImageButton
+            android:id="@+id/btn_rules"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?selectableItemBackground"
+            android:padding="18dp"
+            android:src="@drawable/ic_info" />
+
+        <ImageButton
+            android:id="@+id/btn_surrender"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?selectableItemBackground"
+            android:padding="18dp"
+            android:src="@drawable/ic_flag" />
+
+        <ImageButton
+            android:id="@+id/btn_stat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?selectableItemBackground"
+            android:padding="18dp"
+            android:src="@drawable/ic_stat" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/btn_exit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:background="?selectableItemBackground"
+            android:drawablePadding="6dp"
+            android:padding="18dp"
+            android:text="@string/exit"
+            android:textColor="@color/white"
+            android:textSize="11sp"
+            app:drawableEndCompat="@drawable/ic_exit" />
+
+    </LinearLayout>
+
 
     <ru.spbstu.king_game.view.custom.FieldView
         android:id="@+id/field_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 
 </LinearLayout>

@@ -4,6 +4,7 @@ import android.animation.PropertyValuesHolder
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.*
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.RotateDrawable
 import android.util.AttributeSet
 import android.util.Size
@@ -11,9 +12,7 @@ import android.view.MotionEvent
 import android.view.View
 import androidx.core.content.ContextCompat
 import ru.spbstu.king_game.R
-import ru.spbstu.king_game.data.vo.BaseFieldObject
-import ru.spbstu.king_game.data.vo.CardVO
-import ru.spbstu.king_game.data.vo.PlayerVO
+import ru.spbstu.king_game.data.vo.*
 import ru.spbstu.king_game.engine.data.FieldState
 import ru.spbstu.king_game.engine.repository.CurrentUserRepository
 import ru.spbstu.king_game.view.utils.dpToPx
@@ -33,18 +32,27 @@ class FieldView @JvmOverloads constructor(
 
     var fieldState: FieldState? = null
     var currentUserRepository: CurrentUserRepository? = null
-    var onCardSelected: (CardVO) -> Unit? = { }
+    var onCardSelected: (CardVO) -> Unit = { card ->
+        val enemies = fieldState?.players?.filterNot {
+            currentUserRepository?.isCurrent(it.id) ?: false
+        }
+        fieldState?.currentStep = enemies?.get(2)!!
+        fieldState?.let { state -> updateState(state) }
+    }
 
     private val closedCardDrawable = RotateDrawable().apply {
-        drawable = ContextCompat.getDrawable(context, R.drawable.closed_card_image)
+        drawable = ContextCompat.getDrawable(context, R.drawable.closed_card)
     }
-    private val openedCardDrawable = ContextCompat.getDrawable(context, R.drawable.valet_card)!!
 
     private val cardSize = Size(65.dpToPx.toInt(), 85.dpToPx.toInt())
     private val textPaint = Paint().apply {
         color = Color.WHITE
         textSize = 13.spToPx
         isAntiAlias = true
+    }
+    private val titlePaint = Paint(textPaint).apply {
+        textSize = 18.spToPx
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
     private val borderCardPaint = Paint().apply {
         style = Paint.Style.STROKE
@@ -57,9 +65,6 @@ class FieldView @JvmOverloads constructor(
 
     private val playersCardRect = mutableMapOf<String, RectF>()
 
-    init {
-        setBackgroundResource(R.drawable.rectangle_background)
-    }
 
     override fun onDraw(canvas: Canvas) {
         val fieldState = fieldState ?: return
@@ -70,17 +75,39 @@ class FieldView @JvmOverloads constructor(
         drawSecondEnemy(canvas, enemies.getOrNull(1))
         drawThirdEnemy(canvas, enemies.getOrNull(2))
         drawCurrentPlayer(canvas)
-
+        drawTitle(canvas, fieldState.currentMode)
         for (card in fieldState.deck) {
-            val cardState = card.fieldState
-            openedCardDrawable.setBounds(
-                cardState.left,
-                cardState.top,
-                cardState.right,
-                cardState.bottom
+            val drawable = pickCardDrawable(card)
+            val cardField = card.fieldState
+            drawable.level = 0
+            drawable.setBounds(
+                cardField.left,
+                cardField.top,
+                cardField.right,
+                cardField.bottom
             )
-            openedCardDrawable.draw(canvas)
+            drawable.draw(canvas)
         }
+    }
+
+    private fun drawTitle(canvas: Canvas, currentMode: String) {
+        val measuredText = titlePaint.measureText(currentMode)
+        canvas.drawText(currentMode, width / 2 - measuredText / 2f, 12.dpToPx, titlePaint)
+    }
+
+    fun updateState(fieldState: FieldState) {
+        val enemies = fieldState.players.filterNot {
+            currentUserRepository?.isCurrent(it.id) ?: false
+        }
+        fieldState.deck.forEachIndexed { i, card ->
+            val cardState = card.fieldState
+            val id = enemies.getOrNull(i)?.id ?: 0
+            playersCardRect[id]?.let {
+                cardState.x = it.left.toInt()
+                cardState.y = it.top.toInt()
+            }
+        }
+        invalidate()
     }
 
     private fun drawCurrentPlayer(canvas: Canvas) {
@@ -92,12 +119,14 @@ class FieldView @JvmOverloads constructor(
             val maxWidth = min(width - 16.dpToPx.toInt() * 2, cardSize.width * it.cards.size)
             val cardOffset = maxWidth / it.cards.size
             val startOffset = (width - cardOffset * it.cards.size) / 2
-            canvas.drawText(
-                yourStepText,
-                width / 2f - measuredTextSize,
-                height - cardSize.height - 14.dpToPx,
-                textPaint
-            )
+            if (fieldState?.currentStep == getCurrentPlayer()) {
+                canvas.drawText(
+                    yourStepText,
+                    width / 2f - measuredTextSize,
+                    height - cardSize.height - 14.dpToPx,
+                    textPaint
+                )
+            }
             it.cards.forEachIndexed { i, card ->
                 val offset = startOffset + i * cardOffset
                 val cardField = card.fieldState
@@ -105,6 +134,7 @@ class FieldView @JvmOverloads constructor(
                     cardField.x = offset
                     cardField.y = height - cardField.height
                 }
+                val openedCardDrawable = pickCardDrawable(card)
                 openedCardDrawable.setBounds(
                     cardField.left,
                     cardField.top,
@@ -130,9 +160,10 @@ class FieldView @JvmOverloads constructor(
         val startOffset = (width - cardOffset * player.cards.size) / 2
         player.cards.forEachIndexed { i, card ->
             val offset = startOffset + cardOffset * i
-            val drawable = closedCardDrawable
+            val drawable = if (card.cardStatus == CardStatus.BACK) closedCardDrawable else pickCardDrawable(card)
             val cardField = card.fieldState
             cardField.x = offset
+            cardField.y = (titlePaint.textSize + 12.dpToPx).toInt()
             drawable.level = 0
             drawable.setBounds(
                 cardField.left,
@@ -142,8 +173,11 @@ class FieldView @JvmOverloads constructor(
             )
             drawable.draw(canvas)
             if (i == 0) {
+                val text = if (fieldState?.currentStep == player) {
+                    player.name + "- сейчас ходит"
+                } else player.name
                 canvas.drawText(
-                    player.name,
+                    text,
                     cardField.left.toFloat() + 14.dpToPx,
                     cardField.bottom.toFloat() + 14.dpToPx, textPaint
                 )
@@ -166,7 +200,7 @@ class FieldView @JvmOverloads constructor(
         val startOffset = (height - cardOffset * player.cards.size) / 2
         player.cards.forEachIndexed { i, card ->
             val offset = startOffset + cardOffset * i
-            val drawable = closedCardDrawable
+            val drawable = if (card.cardStatus == CardStatus.BACK) closedCardDrawable else pickCardDrawable(card)
             val cardField = card.fieldState
             cardField.x = -cardField.width / 2
             cardField.y = height - offset
@@ -179,8 +213,11 @@ class FieldView @JvmOverloads constructor(
             )
             drawable.draw(canvas)
             if (i == player.cards.lastIndex) {
+                val text = if (fieldState?.currentStep == player) {
+                    player.name + "- сейчас ходит"
+                } else player.name
                 canvas.drawText(
-                    player.name,
+                    text,
                     cardField.x + cardField.width / 2f + 14.dpToPx,
                     cardField.top.toFloat(), textPaint
                 )
@@ -203,7 +240,7 @@ class FieldView @JvmOverloads constructor(
         val startOffset = (height - cardOffset * player.cards.size) / 2
         player.cards.forEachIndexed { i, card ->
             val offset = startOffset + cardOffset * i
-            val drawable = closedCardDrawable
+            val drawable = if (card.cardStatus == CardStatus.BACK) closedCardDrawable else pickCardDrawable(card)
             val cardField = card.fieldState
             cardField.x = width - cardField.width / 2
             cardField.y = height - offset
@@ -216,9 +253,12 @@ class FieldView @JvmOverloads constructor(
             )
             drawable.draw(canvas)
             if (i == player.cards.lastIndex) {
+                val text = if (fieldState?.currentStep == player) {
+                    "сейчас ходит - ${player.name}"
+                } else player.name
                 canvas.drawText(
-                    player.name,
-                    cardField.x.toFloat() - 14.dpToPx,
+                    text,
+                    cardField.x.toFloat() - textPaint.measureText(text),
                     cardField.top.toFloat(), textPaint
                 )
             }
@@ -324,6 +364,14 @@ class FieldView @JvmOverloads constructor(
         animateCardToDeck(card.fieldState, currentPlayer)
         onCardSelected.invoke(card)
         return true
+    }
+
+    private fun pickCardDrawable(card: CardVO): Drawable {
+        var res = CardMapper.mapFrom(card)
+        if (res <= 0) {
+            res = R.drawable.closed_card
+        }
+        return ContextCompat.getDrawable(context, res)!!
     }
 
     private fun animateCardToDeck(cardState: BaseFieldObject, player: PlayerVO) {

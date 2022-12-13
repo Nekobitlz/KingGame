@@ -27,4 +27,9 @@
 
     <string name="start">Старт</string>
     <string name="your_step">Ваш ход</string>
+    <string name="exit">Выйти</string>
+    <string name="confirm_exit">Вы уверены, что хотите выйти?</string>
+    <string name="yes">Да</string>
+    <string name="no">Нет</string>
+    <string name="game_rules_title">Правила игры</string>
 </resources>
