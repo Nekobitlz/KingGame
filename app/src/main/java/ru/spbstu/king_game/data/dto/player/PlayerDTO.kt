@@ -1,9 +1,12 @@
 package ru.spbstu.king_game.data.dto.player
 
-import ru.spbstu.king_game.data.dto.card.CardDTO
+import kotlinx.serialization.SerialName
 
+typealias PlayerId = String
+
+@kotlinx.serialization.Serializable
 data class PlayerDTO(
-    val id: String,
-    val name: String,
-    val cards: List<CardDTO>,
+    @SerialName("player_id") val id: PlayerId,
+    @SerialName("player_name") val name: String,
+    val points: Int,
 )

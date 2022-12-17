@@ -1,4 +1,4 @@
-package ru.spbstu.king_game.data.vo
+package ru.spbstu.king_game.data.vo.card
 
 import androidx.annotation.DrawableRes
 import ru.spbstu.king_game.R

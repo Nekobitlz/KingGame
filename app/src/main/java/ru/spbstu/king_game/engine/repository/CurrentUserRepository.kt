@@ -1,14 +1,15 @@
 package ru.spbstu.king_game.engine.repository
 
-import ru.spbstu.king_game.data.dto.player.User
+import ru.spbstu.king_game.data.dto.player.PlayerId
+import ru.spbstu.king_game.data.vo.PlayerVO
 
 class CurrentUserRepository {
 
-    val currentUserId get() = "0"//currentUser?.id
+    val currentUserId: PlayerId? get() = currentUser?.id
 
-    private var currentUser: User? = null
+    private var currentUser: PlayerVO? = null
 
-    fun setCurrentUser(user: User) {
+    fun setCurrentUser(user: PlayerVO) {
         this.currentUser = user
     }
 

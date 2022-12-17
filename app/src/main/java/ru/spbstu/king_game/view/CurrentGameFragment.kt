@@ -4,15 +4,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.afollestad.materialdialogs.MaterialDialog
 import ru.spbstu.king_game.R
+import ru.spbstu.king_game.data.vo.game.GameStateVO
 import ru.spbstu.king_game.databinding.FragmentCurrentGameBinding
-import ru.spbstu.king_game.engine.controller.GameStateController
-import ru.spbstu.king_game.engine.data.GameState
-import ru.spbstu.king_game.engine.repository.CurrentUserRepository
+import ru.spbstu.king_game.engine.repository.DependencyProvider
 import ru.spbstu.king_game.navigation.Navigator
 
 class CurrentGameFragment : Fragment() {
@@ -20,8 +18,7 @@ class CurrentGameFragment : Fragment() {
     private var _binding: FragmentCurrentGameBinding? = null
     private val binding get() = _binding!!
 
-    private val currentUserRepository = CurrentUserRepository()
-    private val gameStateController = GameStateController()
+    private val gameStateController = DependencyProvider.gameStateController
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -45,43 +42,40 @@ class CurrentGameFragment : Fragment() {
         binding.btnRules.setOnClickListener {
             Navigator.toRules()
         }
-        binding.fieldView.currentUserRepository = currentUserRepository
+        binding.fieldView.currentUserRepository = DependencyProvider.currentUserRepository
         binding.fieldView.onCardSelected = {
             gameStateController.onCardSelected(it)
         }
 
         lifecycleScope.launchWhenStarted {
-            gameStateController.fieldStateFlow.collect {
-                binding.fieldView.fieldState = it
-                if (it.deck.isNotEmpty()) {
-                    binding.fieldView.updateState(it)
-                }
-                binding.fieldView.invalidate()
-            }
-        }
-        lifecycleScope.launchWhenStarted {
             gameStateController.gameStateFlow.collect {
                 when (it) {
-                    GameState.Finished -> {
+                    is GameStateVO.Finished -> {
                         MaterialDialog(requireContext())
                             .title(R.string.game_over)
                             .show()
                     }
-                    GameState.Paused -> {
+                    is GameStateVO.Paused -> {
                         MaterialDialog(requireContext())
                             .title(R.string.game_paused)
                             .show()
                     }
-                    GameState.Prepared -> {
+                    is GameStateVO.Cancelled -> {
+                        MaterialDialog(requireContext())
+                            .title(R.string.game_cancelled)
+                            .show()
+                    }
+                    is GameStateVO.Started -> {
+                        binding.fieldView.updateState(it)
+                    }
+                    GameStateVO.NotInitialized -> {
                         MaterialDialog(requireContext())
                             .title(R.string.game_prepared)
                             .show()
                     }
-                    GameState.Started -> {
-                        binding.fieldView.isVisible = true
-                        binding.fieldView.invalidate()
-                    }
                 }
+                binding.fieldView.fieldState = it
+                binding.fieldView.invalidate()
             }
         }
     }

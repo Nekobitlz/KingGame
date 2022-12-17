@@ -24,6 +24,7 @@
     <string name="game_over">Игра окончена</string>
     <string name="game_paused">Игра приостановлена</string>
     <string name="game_prepared">Ожидаем начала игры</string>
+    <string name="game_cancelled">Игра отменена</string>
 
     <string name="start">Старт</string>
     <string name="your_step">Ваш ход</string>
