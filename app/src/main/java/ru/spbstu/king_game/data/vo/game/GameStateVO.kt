@@ -71,3 +71,5 @@ sealed class GameStateVO {
         }
     }
 }
+
+fun PlayerId?.orEmpty(): PlayerId = this ?: 0

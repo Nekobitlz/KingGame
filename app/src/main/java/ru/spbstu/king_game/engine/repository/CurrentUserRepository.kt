@@ -13,5 +13,5 @@ class CurrentUserRepository {
         this.currentUser = user
     }
 
-    fun isCurrent(id: String) = currentUserId == id
+    fun isCurrent(id: PlayerId) = currentUserId == id
 }

@@ -8,4 +8,6 @@ interface GameStateController {
     val gameStateFlow: StateFlow<GameStateVO>
 
     fun onCardSelected(card: CardVO)
+
+    fun onGameClosed()
 }

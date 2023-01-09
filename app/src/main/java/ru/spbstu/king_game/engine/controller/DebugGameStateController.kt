@@ -35,7 +35,7 @@ class DebugGameStateController : GameStateController {
     init {
         val players = mutableListOf<PlayerVO>().apply {
             repeat(4) {
-                add(PlayerVO("$it", "Player$it", 0))
+                add(PlayerVO(it, "Player$it", 0))
             }
         }
         DependencyProvider.currentUserRepository.setCurrentUser(players.first())
@@ -60,5 +60,8 @@ class DebugGameStateController : GameStateController {
                 addAll(1, listOf(debugCards[0], debugCards[1], debugCards[2]))
             }))
         }
+    }
+
+    override fun onGameClosed() {
     }
 }

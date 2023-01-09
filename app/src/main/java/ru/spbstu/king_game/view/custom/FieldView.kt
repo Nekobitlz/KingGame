@@ -7,11 +7,13 @@ import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.RotateDrawable
 import android.util.AttributeSet
+import android.util.Log
 import android.util.Size
 import android.view.MotionEvent
 import android.view.View
 import androidx.core.content.ContextCompat
 import ru.spbstu.king_game.R
+import ru.spbstu.king_game.data.dto.player.PlayerId
 import ru.spbstu.king_game.data.vo.BaseFieldObject
 import ru.spbstu.king_game.data.vo.PlayerVO
 import ru.spbstu.king_game.data.vo.card.CardMapper
@@ -64,7 +66,10 @@ class FieldView @JvmOverloads constructor(
     private val yourStepText = resources.getString(R.string.your_step)
     private val measuredTextSize = textPaint.measureText(yourStepText) / 2
 
-    private val playersCardRect = mutableMapOf<String, RectF>()
+    private var gameNum = -1
+    private var circleNum = -1
+    private var firstTurn = -1
+    private val playersCardRect = mutableMapOf<PlayerId, RectF>()
 
 
     override fun onDraw(canvas: Canvas) {
@@ -76,11 +81,11 @@ class FieldView @JvmOverloads constructor(
             currentUserRepository?.isCurrent(it.id) ?: false
         }
         val cardsCount = MAX_CARDS_SIZE - fieldState.circleNum + 1
-        drawFirstEnemy(canvas, enemies.getOrNull(0), cardsCount)
-        drawSecondEnemy(canvas, enemies.getOrNull(1), cardsCount)
+        drawFirstEnemy(canvas, enemies.getOrNull(1), cardsCount)
+        drawSecondEnemy(canvas, enemies.getOrNull(0), cardsCount)
         drawThirdEnemy(canvas, enemies.getOrNull(2), cardsCount)
         drawCurrentPlayer(canvas, fieldState)
-        drawTitle(canvas, fieldState.circleNum.toString()) //todo map to title
+        drawTitle(canvas, "Не брать взятки") //todo map to title
         for (card in fieldState.bribe) {
             card ?: continue
             val drawable = pickCardDrawable(card)
@@ -103,9 +108,15 @@ class FieldView @JvmOverloads constructor(
 
     fun updateState(fieldState: GameStateVO.Started) {
         val players = fieldState.players
+        if (firstTurn == -1 || fieldState.circleNum != circleNum || fieldState.gameNum != gameNum) {
+            firstTurn = players.indexOfFirst { it.id == fieldState.playerTurn }
+            circleNum = fieldState.circleNum
+            gameNum = fieldState.gameNum
+        }
         fieldState.bribe.forEachIndexed { i, card ->
             card?.fieldState?.let { cardState ->
-                val id = players.getOrNull(i)?.id ?: 0
+                val id = players.getOrNull((firstTurn + i) % players.size)?.id
+                Log.d("FIELD_DEBUG", "found=$id with index: firstTurn=${firstTurn}  i=$i rect: ${playersCardRect[id].toString()}")
                 playersCardRect[id]?.let {
                     cardState.x = it.left.toInt()
                     cardState.y = it.top.toInt()
@@ -133,10 +144,12 @@ class FieldView @JvmOverloads constructor(
             }
             fieldState.cards.forEachIndexed { i, card ->
                 val offset = startOffset + i * cardOffset
-                val cardField = card.fieldState
+                var cardField = card.fieldState
                 if (draggingState == null || draggingState?.dragObject?.id != cardField.id) {
                     cardField.x = offset
                     cardField.y = height - cardField.height
+                } else {
+                    cardField = draggingState!!.dragObject
                 }
                 val openedCardDrawable = pickCardDrawable(card)
                 openedCardDrawable.setBounds(
@@ -178,7 +191,7 @@ class FieldView @JvmOverloads constructor(
             drawable.draw(canvas)
             if (i == 0) {
                 val text = if (getCurrentGameState()?.playerTurn == player.id) {
-                    player.name + "- сейчас ходит"
+                    player.name + " - сейчас ходит"
                 } else player.name
                 canvas.drawText(
                     text,
@@ -218,7 +231,7 @@ class FieldView @JvmOverloads constructor(
             drawable.draw(canvas)
             if (i == cardsCount - 1) {
                 val text = if (getCurrentGameState()?.playerTurn == player.id) {
-                    player.name + "- сейчас ходит"
+                    player.name + " - сейчас ходит"
                 } else player.name
                 canvas.drawText(
                     text,
@@ -269,7 +282,7 @@ class FieldView @JvmOverloads constructor(
         }
     }
 
-    private fun drawCardBorder(canvas: Canvas, startPoint: PointF, id: String) {
+    private fun drawCardBorder(canvas: Canvas, startPoint: PointF, id: PlayerId) {
         val roundedRadius = 4.dpToPx
         val rectF = RectF(
             startPoint.x, startPoint.y,
@@ -290,32 +303,37 @@ class FieldView @JvmOverloads constructor(
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 val card = getTouchedCard(evX, evY)
-                if (card != null) {
+                val player = getCurrentPlayer() ?: return false
+                if (card != null && getCurrentGameState()?.playerTurn == player.id) {
                     val cardState = card.fieldState
                     draggingState = DraggingState(
                         evX - cardState.x, evY - cardState.y,
                         cardState, true
                     )
                     draggingState?.let {
+                        Log.d("FIELD_DEBUG", "ACTION_DOWN ${(evX - it.dragX).toInt()} ${(evY - it.dragY).toInt()} ${it.isDragging}")
                         if (it.isDragging) {
                             it.dragObject.x = (evX - it.dragX).toInt()
                             it.dragObject.y = (evY - it.dragY).toInt()
-                            invalidate()
+                            postInvalidate()
                         }
                     }
                 }
             }
             MotionEvent.ACTION_MOVE -> draggingState?.let {
+                Log.d("FIELD_DEBUG", "ACTION_MOVE ${(evX - it.dragX).toInt()} ${(evY - it.dragY).toInt()} ${it.isDragging}")
                 if (it.isDragging) {
                     it.dragObject.x = (evX - it.dragX).toInt()
                     it.dragObject.y = (evY - it.dragY).toInt()
-                    invalidate()
+                    postInvalidate()
                 }
             }
             MotionEvent.ACTION_UP -> draggingState?.let {
                 it.isDragging = false
                 val player = getCurrentPlayer() ?: return false
+                Log.d("FIELD_DEBUG", "ACTION_UP ${it.dragObject.x} ${it.dragObject.y}")
                 if (event.eventTime - event.downTime < CLICK_THRESHOLD) {
+                    Log.d("FIELD_DEBUG", "ACTION_UP click detected")
                     return onCardClick(event)
                 }
                 val leftPadding = cardSize.width / 2
@@ -336,7 +354,7 @@ class FieldView @JvmOverloads constructor(
                     draggingState?.reset()
                     draggingState = null
                 }
-                invalidate()
+                postInvalidate()
             }
         }
         return true
@@ -366,6 +384,9 @@ class FieldView @JvmOverloads constructor(
 
     private fun onCardClick(e: MotionEvent): Boolean {
         val currentPlayer = getCurrentPlayer() ?: return false
+        if (getCurrentGameState()?.playerTurn != currentPlayer.id) {
+            return false
+        }
         val card = getTouchedCard(e.x, e.y) ?: return false
         animateCardToDeck(card.fieldState, currentPlayer)
         onCardSelected.invoke(card)
@@ -382,6 +403,7 @@ class FieldView @JvmOverloads constructor(
 
     private fun animateCardToDeck(cardState: BaseFieldObject, player: PlayerVO) {
         val rect = playersCardRect[player.id] ?: return
+        Log.d("FIELD_DEBUG", "animate ${player.id} rect: $rect")
 
         val pvhX = PropertyValuesHolder.ofInt("x", cardState.x, rect.left.toInt())
         val pvhY = PropertyValuesHolder.ofInt("y", cardState.y, rect.top.toInt())
@@ -390,7 +412,7 @@ class FieldView @JvmOverloads constructor(
         translator.addUpdateListener { valueAnimator ->
             cardState.x = valueAnimator.getAnimatedValue("x") as Int
             cardState.y = valueAnimator.getAnimatedValue("y") as Int
-            invalidate()
+            postInvalidate()
         }
         translator.duration = 300
         translator.start()

@@ -12,14 +12,14 @@ sealed class WebsocketRequest {
 
     @Serializable
     data class StartGame(
-        @SerialName("session_id") val sessionId: Int,
+        @SerialName("session_id") val sessionId: String,
         @SerialName("player_name") val playerName: String,
         val action: Action,
     ) : WebsocketRequest()
 
     @Serializable
     data class SendAction(
-        @SerialName("game_session_id") val gameSessionId: Int,
+        @SerialName("game_session_id") val gameSessionId: Long,
         @SerialName("player_id") val playerId: PlayerId,
         val action: Action,
         @SerialName("game_state") val gameState: SimpleGameStateDTO? = null,
@@ -31,10 +31,11 @@ sealed class WebsocketRequest {
 
 sealed class WebsocketResponse {
     @Serializable
-    data class OpenSession(@SerialName("session_id") val sessionId: Int) : WebsocketResponse()
+    data class OpenSession(@SerialName("session_id") val sessionId: String) : WebsocketResponse()
 
+    @Serializable
     data class UpdateGameState(
-        @SerialName("game_session_id") val gameSessionId: Int,
-        val gameState: GameStateDTO
+        @SerialName("game_session_id") val gameSessionId: Long,
+        @SerialName("game_state") val gameState: GameStateDTO
     ) : WebsocketResponse()
 }

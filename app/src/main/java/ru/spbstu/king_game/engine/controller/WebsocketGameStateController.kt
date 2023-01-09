@@ -8,6 +8,7 @@ import ru.spbstu.king_game.data.dto.game.SimpleGameStateDTO
 import ru.spbstu.king_game.data.vo.PlayerVO
 import ru.spbstu.king_game.data.vo.card.CardVO
 import ru.spbstu.king_game.data.vo.game.GameStateVO
+import ru.spbstu.king_game.data.vo.game.orEmpty
 import ru.spbstu.king_game.engine.data.Action
 import ru.spbstu.king_game.engine.repository.CurrentUserRepository
 import ru.spbstu.king_game.network.WebsocketRequest
@@ -23,7 +24,8 @@ class WebsocketGameStateController(
     override val gameStateFlow: StateFlow<GameStateVO>
         get() = _gameStateFlow.asStateFlow()
 
-    private var gameSession = 0
+    private var sessionId: String? = null
+    private var gameSessionId = 0L
     private val playerName = "Сашок" // todo
 
     init {
@@ -31,15 +33,16 @@ class WebsocketGameStateController(
             .onEach {
                 when (it) {
                     is WebsocketResponse.UpdateGameState -> {
+                        gameSessionId = it.gameSessionId
                         it.gameState.players?.firstOrNull()?.let { player ->
                             currentUserRepository.setCurrentUser(PlayerVO.mapFrom(player))
                         }
                         _gameStateFlow.emit(GameStateVO.mapFrom(it.gameState))
                     }
                     is WebsocketResponse.OpenSession -> {
-                        gameSession = it.sessionId
+                        sessionId = it.sessionId
                         websocketService.sendCommand(WebsocketRequest.StartGame(
-                            gameSession, playerName, Action.play
+                            sessionId!!, playerName, Action.play
                         ))
                     }
                 }
@@ -51,11 +54,15 @@ class WebsocketGameStateController(
         val simpleState = _gameStateFlow.value as? GameStateVO.Started ?: return
         websocketService.sendCommand(
             WebsocketRequest.SendAction(
-                gameSession, currentUserRepository.currentUserId.orEmpty(),
+                gameSessionId, currentUserRepository.currentUserId.orEmpty(),
                 Action.turn,
                 SimpleGameStateDTO(simpleState.gameNum, simpleState.circleNum),
                 turn = CardDTO(card.suit, card.magnitude)
             )
         )
+    }
+
+    override fun onGameClosed() {
+        websocketService.close()
     }
 }

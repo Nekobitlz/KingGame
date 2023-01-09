@@ -34,10 +34,10 @@ object CardMapper {
     @DrawableRes
     fun mapFrom(cardVO: CardVO): Int {
         val list = when (cardVO.suit) {
-            CardSuit.HEARTS -> heartsList
-            CardSuit.CLUBS -> clubsList
-            CardSuit.DIAMONDS -> diamondsList
-            CardSuit.SPADES -> spadesList
+            CardSuit.hearts -> heartsList
+            CardSuit.clubs -> clubsList
+            CardSuit.diamonds -> diamondsList
+            CardSuit.spades -> spadesList
         }
         if (cardVO.magnitude.isValid()) {
             return list[cardVO.magnitude - 6]

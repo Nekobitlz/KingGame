@@ -25,7 +25,7 @@ data class BaseFieldObject(
 
     companion object {
         fun createEmpty(id: String): BaseFieldObject {
-            return BaseFieldObject(id, 0, 0, FieldView.cardSize.width, FieldView.cardSize.height)
+            return BaseFieldObject(id, 100, 100, FieldView.cardSize.width, FieldView.cardSize.height)
         }
     }
 }

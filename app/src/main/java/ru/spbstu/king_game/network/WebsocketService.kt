@@ -3,6 +3,9 @@ package ru.spbstu.king_game.network
 import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.serialization.*
+import io.ktor.websocket.Frame
+import io.ktor.websocket.close
+import io.ktor.websocket.readText
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.*
@@ -35,6 +38,7 @@ class WebsocketService(
             Logger.e("WebSocket: closed with exception ${it?.stackTraceToString()}")
         }
         session.incoming.consumeAsFlow().onEach { frame ->
+            Logger.i("WebSocket: incoming ${if (frame is Frame.Text) frame.readText() else frame.toString()}")
             val converter = session.converter
             if (converter == null || !converter.isApplicable(frame)) {
                 Logger.i("WebSocket: received not applicable frame: ${frame.frameType}")
@@ -46,7 +50,7 @@ class WebsocketService(
                 Logger.i("WebSocket: message received $event")
                 eventFlow.emit(event)
             } catch (e: Exception) {
-                Logger.e("WebSocket: error while parse gameState, trying to parse session")
+                Logger.e("WebSocket: error while parse gameState $e, trying to parse session")
                 val event = converter.deserialize<WebsocketResponse.OpenSession>(frame, charset)
                 eventFlow.emit(event)
             }
@@ -59,6 +63,12 @@ class WebsocketService(
             Logger.i("WebSocket: message sent $it")
             session.sendSerialized(it)
         }.collect()
+    }
+
+    fun close() {
+        CoroutineScope(Dispatchers.IO).launch {
+            session?.close()
+        }
     }
 
     fun sendCommand(command: WebsocketRequest) {

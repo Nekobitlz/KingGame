@@ -2,7 +2,7 @@ package ru.spbstu.king_game.data.dto.player
 
 import kotlinx.serialization.SerialName
 
-typealias PlayerId = String
+typealias PlayerId = Int
 
 @kotlinx.serialization.Serializable
 data class PlayerDTO(

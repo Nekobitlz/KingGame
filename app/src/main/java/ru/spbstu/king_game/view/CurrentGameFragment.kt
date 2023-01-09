@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.callbacks.onDismiss
 import ru.spbstu.king_game.R
 import ru.spbstu.king_game.data.vo.game.GameStateVO
 import ru.spbstu.king_game.databinding.FragmentCurrentGameBinding
@@ -17,8 +18,9 @@ class CurrentGameFragment : Fragment() {
 
     private var _binding: FragmentCurrentGameBinding? = null
     private val binding get() = _binding!!
+    private val gameStateController get() = DependencyProvider.gameStateController!!
 
-    private val gameStateController = DependencyProvider.gameStateController
+    private var pausedDialog: MaterialDialog? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -30,6 +32,9 @@ class CurrentGameFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        if (DependencyProvider.gameStateController == null) {
+            DependencyProvider.gameStateController = DependencyProvider.createGameStateController()
+        }
         binding.btnExit.setOnClickListener {
             MaterialDialog(requireContext())
                 .title(R.string.confirm_exit)
@@ -49,33 +54,44 @@ class CurrentGameFragment : Fragment() {
 
         lifecycleScope.launchWhenStarted {
             gameStateController.gameStateFlow.collect {
+                pausedDialog?.dismiss()
                 when (it) {
                     is GameStateVO.Finished -> {
                         MaterialDialog(requireContext())
                             .title(R.string.game_over)
+                            .onDismiss { activity?.onBackPressed() }
                             .show()
+                        gameStateController.onGameClosed()
+                        DependencyProvider.gameStateController = null
                     }
                     is GameStateVO.Paused -> {
-                        MaterialDialog(requireContext())
+                        pausedDialog = MaterialDialog(requireContext())
                             .title(R.string.game_paused)
-                            .show()
+                            .cancelOnTouchOutside(false)
+                            .noAutoDismiss()
+                            .show { }
                     }
                     is GameStateVO.Cancelled -> {
                         MaterialDialog(requireContext())
                             .title(R.string.game_cancelled)
+                            .onDismiss { activity?.onBackPressed() }
                             .show()
+                        gameStateController.onGameClosed()
+                        DependencyProvider.gameStateController = null
                     }
                     is GameStateVO.Started -> {
                         binding.fieldView.updateState(it)
                     }
                     GameStateVO.NotInitialized -> {
-                        MaterialDialog(requireContext())
+                        pausedDialog = MaterialDialog(requireContext())
                             .title(R.string.game_prepared)
-                            .show()
+                            .noAutoDismiss()
+                            .cancelOnTouchOutside(false)
+                            .show { }
                     }
                 }
                 binding.fieldView.fieldState = it
-                binding.fieldView.invalidate()
+                binding.fieldView.postInvalidate()
             }
         }
     }
