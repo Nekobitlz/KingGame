@@ -7,6 +7,8 @@ class CurrentUserRepository {
 
     val currentUserId: PlayerId? get() = currentUser?.id
 
+    var currentName: String? = null
+
     private var currentUser: PlayerVO? = null
 
     fun setCurrentUser(user: PlayerVO) {

@@ -10,4 +10,6 @@ interface GameStateController {
     fun onCardSelected(card: CardVO)
 
     fun onGameClosed()
+    fun onPauseRequest()
+    fun onResumeRequest()
 }

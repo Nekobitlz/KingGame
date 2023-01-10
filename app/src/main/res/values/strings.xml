@@ -33,4 +33,5 @@
     <string name="yes">Да</string>
     <string name="no">Нет</string>
     <string name="game_rules_title">Правила игры</string>
+    <string name="name_field_hint">Введите имя</string>
 </resources>

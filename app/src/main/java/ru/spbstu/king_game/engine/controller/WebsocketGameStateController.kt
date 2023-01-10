@@ -26,7 +26,7 @@ class WebsocketGameStateController(
 
     private var sessionId: String? = null
     private var gameSessionId = 0L
-    private val playerName = "Сашок" // todo
+    private val playerName = currentUserRepository.currentName ?: "Player"
 
     init {
         websocketService.observeEvent()
@@ -64,5 +64,23 @@ class WebsocketGameStateController(
 
     override fun onGameClosed() {
         websocketService.close()
+    }
+
+    override fun onPauseRequest() {
+        websocketService.sendCommand(
+            WebsocketRequest.SendAction(
+                gameSessionId, currentUserRepository.currentUserId.orEmpty(),
+                Action.pause,
+            )
+        )
+    }
+
+    override fun onResumeRequest() {
+        websocketService.sendCommand(
+            WebsocketRequest.SendAction(
+                gameSessionId, currentUserRepository.currentUserId.orEmpty(),
+                Action.resume,
+            )
+        )
     }
 }

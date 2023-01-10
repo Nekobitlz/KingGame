@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import ru.spbstu.king_game.databinding.FragmentStartBinding
+import ru.spbstu.king_game.engine.repository.DependencyProvider
 import ru.spbstu.king_game.navigation.Navigator
 
 class StartFragment : Fragment() {
@@ -25,7 +26,18 @@ class StartFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.btnStart.setOnClickListener {
+            if (binding.etName.text.isNullOrBlank()) {
+                binding.nameField.isErrorEnabled = true
+                binding.nameField.error = "Для начала игры необходимо ввести имя"
+                return@setOnClickListener
+            }
+            DependencyProvider.currentUserRepository.currentName = binding.etName.text.toString().trim()
             Navigator.toCurrentGame()
+        }
+        DependencyProvider.currentUserRepository.currentName?.let {
+            if (it.isNotBlank()) {
+                binding.etName.setText(it)
+            }
         }
     }
 }

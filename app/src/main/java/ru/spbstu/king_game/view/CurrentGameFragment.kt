@@ -47,6 +47,9 @@ class CurrentGameFragment : Fragment() {
         binding.btnRules.setOnClickListener {
             Navigator.toRules()
         }
+        binding.btnPause.setOnClickListener {
+            gameStateController.onPauseRequest()
+        }
         binding.fieldView.currentUserRepository = DependencyProvider.currentUserRepository
         binding.fieldView.onCardSelected = {
             gameStateController.onCardSelected(it)
@@ -59,6 +62,7 @@ class CurrentGameFragment : Fragment() {
                     is GameStateVO.Finished -> {
                         MaterialDialog(requireContext())
                             .title(R.string.game_over)
+                            .message(text = "Победитель: ${it.players[it.winner].name}")
                             .onDismiss { activity?.onBackPressed() }
                             .show()
                         gameStateController.onGameClosed()
@@ -69,6 +73,9 @@ class CurrentGameFragment : Fragment() {
                             .title(R.string.game_paused)
                             .cancelOnTouchOutside(false)
                             .noAutoDismiss()
+                            .negativeButton(text = "Продолжить") {
+                                gameStateController.onResumeRequest()
+                            }
                             .show { }
                     }
                     is GameStateVO.Cancelled -> {

@@ -1,5 +1,6 @@
 package ru.spbstu.king_game.engine.repository
 
+import ru.spbstu.king_game.engine.controller.DebugGameStateController
 import ru.spbstu.king_game.engine.controller.GameStateController
 import ru.spbstu.king_game.engine.controller.WebsocketGameStateController
 import ru.spbstu.king_game.network.WebsocketService

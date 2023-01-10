@@ -19,23 +19,24 @@
             android:layout_height="wrap_content"
             android:background="?selectableItemBackground"
             android:padding="18dp"
+            android:visibility="gone"
             android:src="@drawable/ic_settings" />
 
         <ImageButton
             android:id="@+id/btn_rules"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:background="?selectableItemBackground"
             android:padding="18dp"
             android:src="@drawable/ic_info" />
 
         <ImageButton
-            android:id="@+id/btn_surrender"
+            android:id="@+id/btn_pause"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="?selectableItemBackground"
             android:padding="18dp"
-            android:src="@drawable/ic_flag" />
+            android:src="@drawable/ic_pause" />
 
         <ImageButton
             android:id="@+id/btn_stat"
@@ -43,6 +44,7 @@
             android:layout_height="wrap_content"
             android:background="?selectableItemBackground"
             android:padding="18dp"
+            android:visibility="gone"
             android:src="@drawable/ic_stat" />
 
         <Space

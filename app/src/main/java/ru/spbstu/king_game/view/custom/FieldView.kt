@@ -70,7 +70,7 @@ class FieldView @JvmOverloads constructor(
     private var circleNum = -1
     private var firstTurn = -1
     private val playersCardRect = mutableMapOf<PlayerId, RectF>()
-
+    private var usedCards = mutableSetOf<CardVO>()
 
     override fun onDraw(canvas: Canvas) {
         val fieldState = fieldState ?: return
@@ -81,11 +81,6 @@ class FieldView @JvmOverloads constructor(
             currentUserRepository?.isCurrent(it.id) ?: false
         }
         val cardsCount = MAX_CARDS_SIZE - fieldState.circleNum + 1
-        drawFirstEnemy(canvas, enemies.getOrNull(1), cardsCount)
-        drawSecondEnemy(canvas, enemies.getOrNull(0), cardsCount)
-        drawThirdEnemy(canvas, enemies.getOrNull(2), cardsCount)
-        drawCurrentPlayer(canvas, fieldState)
-        drawTitle(canvas, "Не брать взятки") //todo map to title
         for (card in fieldState.bribe) {
             card ?: continue
             val drawable = pickCardDrawable(card)
@@ -99,11 +94,37 @@ class FieldView @JvmOverloads constructor(
             )
             drawable.draw(canvas)
         }
+        drawFirstEnemy(canvas, enemies.getOrNull(1), cardsCount)
+        drawSecondEnemy(canvas, enemies.getOrNull(0), cardsCount)
+        drawThirdEnemy(canvas, enemies.getOrNull(2), cardsCount)
+        drawCurrentPlayer(canvas, fieldState)
+        drawTitle(canvas, getModeName(fieldState.gameNum))
+        drawScore(canvas, fieldState.players)
     }
+
+    private fun getModeName(gameNum: Int): String = context.getString(when (gameNum) {
+        1 -> R.string.rule_1_title
+        2 -> R.string.rule_2_title
+        3 -> R.string.rule_3_title
+        4 -> R.string.rule_4_title
+        5 -> R.string.rule_5_title
+        6 -> R.string.rule_6_title
+        else -> R.string.rule_7_title
+    })
 
     private fun drawTitle(canvas: Canvas, currentMode: String) {
         val measuredText = titlePaint.measureText(currentMode)
         canvas.drawText(currentMode, width / 2 - measuredText / 2f, 12.dpToPx, titlePaint)
+    }
+
+    private fun drawScore(canvas: Canvas, players: List<PlayerVO>) {
+        val x = 6.dpToPx
+        var y = 12.dpToPx
+        canvas.drawText("Текущий счет:", x, y, textPaint)
+        for (player in players) {
+            y += textPaint.descent() - textPaint.ascent()
+            canvas.drawText("${player.name}: ${player.points}", x, y, textPaint)
+        }
     }
 
     fun updateState(fieldState: GameStateVO.Started) {
@@ -111,6 +132,9 @@ class FieldView @JvmOverloads constructor(
         if (firstTurn == -1 || fieldState.circleNum != circleNum || fieldState.gameNum != gameNum) {
             firstTurn = players.indexOfFirst { it.id == fieldState.playerTurn }
             circleNum = fieldState.circleNum
+            if (gameNum != fieldState.gameNum) {
+                usedCards.clear()
+            }
             gameNum = fieldState.gameNum
         }
         fieldState.bribe.forEachIndexed { i, card ->
@@ -126,14 +150,24 @@ class FieldView @JvmOverloads constructor(
     }
 
     private fun drawCurrentPlayer(canvas: Canvas, fieldState: GameStateVO.Started) {
-        getCurrentPlayer()?.let {
+        getCurrentPlayer()?.let { player ->
+            val cards = fieldState.cards.filterNot { playerCard ->
+                when {
+                    playerCard in usedCards -> true
+                    fieldState.circleNum > 0 && fieldState.bribe.any { it?.suit == playerCard.suit && it.magnitude == playerCard.magnitude } -> {
+                        usedCards.add(playerCard)
+                        true
+                    }
+                    else -> false
+                }
+            }
             val topPadding = 2.dpToPx
             val startPoint = PointF(width / 2f - cardSize.width / 2f, height / 2f + topPadding)
-            drawCardBorder(canvas, startPoint, it.id)
+            drawCardBorder(canvas, startPoint, player.id)
 
-            val maxWidth = min(width - 16.dpToPx.toInt() * 2, cardSize.width * fieldState.cards.size)
-            val cardOffset = maxWidth / fieldState.cards.size
-            val startOffset = (width - cardOffset * fieldState.cards.size) / 2
+            val maxWidth = min(width - 16.dpToPx.toInt() * 2, cardSize.width * cards.size)
+            val cardOffset = if (cards.isNotEmpty()) maxWidth / cards.size else maxWidth
+            val startOffset = (width - cardOffset * cards.size) / 2
             if (fieldState.playerTurn == getCurrentPlayer()?.id) {
                 canvas.drawText(
                     yourStepText,
@@ -142,7 +176,7 @@ class FieldView @JvmOverloads constructor(
                     textPaint
                 )
             }
-            fieldState.cards.forEachIndexed { i, card ->
+            cards.forEachIndexed { i, card ->
                 val offset = startOffset + i * cardOffset
                 var cardField = card.fieldState
                 if (draggingState == null || draggingState?.dragObject?.id != cardField.id) {
@@ -172,9 +206,9 @@ class FieldView @JvmOverloads constructor(
         )
         drawCardBorder(canvas, startPoint, player.id)
 
-        val maxWidth = min(width / 2, cardSize.width * cardsCount)
+        val maxWidth = min(width / 3, cardSize.width * cardsCount)
         val cardOffset = maxWidth / cardsCount
-        val startOffset = (width - cardOffset * cardsCount) / 2
+        val startOffset = (width - maxWidth) / 2
         (0 until cardsCount).forEach { i ->
             val cardField = BaseFieldObject.createEmpty("${player.id}-i")
             val offset = startOffset + cardOffset * i
@@ -191,7 +225,7 @@ class FieldView @JvmOverloads constructor(
             drawable.draw(canvas)
             if (i == 0) {
                 val text = if (getCurrentGameState()?.playerTurn == player.id) {
-                    player.name + " - сейчас ходит"
+                    "Ход: ${player.name}"
                 } else player.name
                 canvas.drawText(
                     text,
@@ -231,7 +265,7 @@ class FieldView @JvmOverloads constructor(
             drawable.draw(canvas)
             if (i == cardsCount - 1) {
                 val text = if (getCurrentGameState()?.playerTurn == player.id) {
-                    player.name + " - сейчас ходит"
+                    "Ход: ${player.name}"
                 } else player.name
                 canvas.drawText(
                     text,
@@ -271,7 +305,7 @@ class FieldView @JvmOverloads constructor(
             drawable.draw(canvas)
             if (i == cardsCount - 1) {
                 val text = if (getCurrentGameState()?.playerTurn == player.id) {
-                    "сейчас ходит - ${player.name}"
+                    "Ход: ${player.name}"
                 } else player.name
                 canvas.drawText(
                     text,

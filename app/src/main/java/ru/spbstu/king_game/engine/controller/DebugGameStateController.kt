@@ -64,4 +64,10 @@ class DebugGameStateController : GameStateController {
 
     override fun onGameClosed() {
     }
+
+    override fun onPauseRequest() {
+    }
+
+    override fun onResumeRequest() {
+    }
 }
