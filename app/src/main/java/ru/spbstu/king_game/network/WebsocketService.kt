@@ -20,7 +20,13 @@ class WebsocketService(
     private val eventFlow = MutableSharedFlow<WebsocketResponse>()
 
     init {
-        CoroutineScope(Dispatchers.IO).launch {
+        val handler = CoroutineExceptionHandler { context, exception ->
+            CoroutineScope(context).launch {
+                Logger.e("WebSocket: got server error with exception ${exception.stackTraceToString()}")
+                eventFlow.emit(WebsocketResponse.Error(ErrorType.SERVER_ERROR))
+            }
+        }
+        CoroutineScope(Dispatchers.IO).launch(handler) {
             startWebsocket()
         }
     }
@@ -31,6 +37,9 @@ class WebsocketService(
         val session = session!!
         Logger.i("WebSocket: started")
         session.closeReason.invokeOnCompletion {
+            session.launch {
+                eventFlow.emit(WebsocketResponse.Error(ErrorType.CONNECTION_ERROR))
+            }
             if (it is ClosedReceiveChannelException || it is CancellationException) {
                 Logger.i("WebSocket: closed normally ${it.stackTraceToString()}")
                 return@invokeOnCompletion

@@ -154,7 +154,7 @@ class FieldView @JvmOverloads constructor(
             val cards = fieldState.cards.filterNot { playerCard ->
                 when {
                     playerCard in usedCards -> true
-                    fieldState.circleNum > 0 && fieldState.bribe.any { it?.suit == playerCard.suit && it.magnitude == playerCard.magnitude } -> {
+                    fieldState.circleNum > 1 && fieldState.bribe.any { it?.suit == playerCard.suit && it.magnitude == playerCard.magnitude } -> {
                         usedCards.add(playerCard)
                         true
                     }

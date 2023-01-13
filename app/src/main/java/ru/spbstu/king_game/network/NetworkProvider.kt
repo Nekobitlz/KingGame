@@ -13,7 +13,7 @@ import kotlinx.serialization.modules.SerializersModule
 object NetworkProvider {
 
     // https://stackoverflow.com/questions/5495534/java-net-connectexception-localhost-127-0-0-18080-connection-refused
-    const val WEBSOCKET_URL = "ws://10.0.2.2:8080/ws"
+    const val WEBSOCKET_URL = "ws://89.208.231.175:8080/ws"
 
     val json = Json {
         encodeDefaults = true
@@ -25,6 +25,11 @@ object NetworkProvider {
     }
 
     val client = HttpClient(OkHttp) {
+        engine {
+            config {
+                retryOnConnectionFailure(true)
+            }
+        }
         install(Logging) {
             logger = Logger.DEFAULT
             level = LogLevel.ALL

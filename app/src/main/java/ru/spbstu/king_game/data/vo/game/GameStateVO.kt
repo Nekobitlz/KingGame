@@ -5,6 +5,7 @@ import ru.spbstu.king_game.data.dto.player.PlayerId
 import ru.spbstu.king_game.data.vo.PlayerVO
 import ru.spbstu.king_game.data.vo.card.CardVO
 import ru.spbstu.king_game.engine.data.State
+import ru.spbstu.king_game.network.ErrorType
 
 sealed class GameStateVO {
 
@@ -38,6 +39,8 @@ sealed class GameStateVO {
     ) : GameStateVO()
 
     object NotInitialized: GameStateVO()
+
+    data class Error(val errorType: ErrorType): GameStateVO()
 
     companion object {
         fun mapFrom(state: GameStateDTO): GameStateVO = state.let { dto ->

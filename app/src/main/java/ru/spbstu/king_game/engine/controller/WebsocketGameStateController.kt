@@ -45,6 +45,9 @@ class WebsocketGameStateController(
                             sessionId!!, playerName, Action.play
                         ))
                     }
+                    is WebsocketResponse.Error -> {
+                        _gameStateFlow.emit(GameStateVO.Error(it.errorType))
+                    }
                 }
             }
             .launchIn(CoroutineScope(Dispatchers.Main))

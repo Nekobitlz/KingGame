@@ -38,4 +38,11 @@ sealed class WebsocketResponse {
         @SerialName("game_session_id") val gameSessionId: Long,
         @SerialName("game_state") val gameState: GameStateDTO
     ) : WebsocketResponse()
+
+    data class Error(val errorType: ErrorType): WebsocketResponse()
+}
+
+enum class ErrorType(val text: String) {
+    SERVER_ERROR("Возникла ошибка связи с сервером, попробуйте позже"),
+    CONNECTION_ERROR("Потеряна связь с сервером, попробуйте еще раз")
 }
