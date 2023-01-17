@@ -23,7 +23,7 @@ object Navigator {
     }
 
     fun toRules() {
-        navigateTo(RulesFragment(), addToBackstack = true)
+        navigateTo(RulesFragment(), addToBackstack = true, add = true, tag = "RULES_FRAGMENT")
     }
 
     fun showSnackBar(view: View, text: String) {
@@ -35,12 +35,14 @@ object Navigator {
         args: Bundle? = null,
         addToBackstack: Boolean = false,
         popBackstack: Boolean = false,
+        add: Boolean = false,
+        tag: String? = null
     ) = activity?.let { activity ->
         fragment.arguments = args
         activity.supportFragmentManager.apply {
             if (popBackstack) popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)
             beginTransaction()
-                .replace(R.id.container, fragment)
+                .apply { if (add) add(R.id.container, fragment, tag) else replace(R.id.container, fragment, tag) }
                 .apply { if (addToBackstack) addToBackStack(null) }
                 .commit()
         }

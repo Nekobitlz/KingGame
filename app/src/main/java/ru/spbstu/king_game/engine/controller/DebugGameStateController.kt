@@ -70,4 +70,7 @@ class DebugGameStateController : GameStateController {
 
     override fun onResumeRequest() {
     }
+
+    override fun onRetryRequest() {
+    }
 }

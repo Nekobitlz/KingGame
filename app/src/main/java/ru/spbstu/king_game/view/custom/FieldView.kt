@@ -6,6 +6,8 @@ import android.content.Context
 import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.RotateDrawable
+import android.os.Bundle
+import android.os.Parcelable
 import android.util.AttributeSet
 import android.util.Log
 import android.util.Size
@@ -69,8 +71,8 @@ class FieldView @JvmOverloads constructor(
     private var gameNum = -1
     private var circleNum = -1
     private var firstTurn = -1
-    private val playersCardRect = mutableMapOf<PlayerId, RectF>()
-    private var usedCards = mutableSetOf<CardVO>()
+    private val playersCardRect = hashMapOf<PlayerId, RectF>()
+    private val usedCards = hashSetOf<CardVO>()
 
     override fun onDraw(canvas: Canvas) {
         val fieldState = fieldState ?: return
@@ -100,6 +102,30 @@ class FieldView @JvmOverloads constructor(
         drawCurrentPlayer(canvas, fieldState)
         drawTitle(canvas, getModeName(fieldState.gameNum))
         drawScore(canvas, fieldState.players)
+    }
+
+    override fun onSaveInstanceState(): Parcelable {
+        Log.d("FIELD_DEBUG", "onSaveInstanceState $usedCards $playersCardRect")
+        return Bundle().apply {
+            putParcelable("superState", super.onSaveInstanceState())
+            putInt("gameNum", gameNum)
+            putInt("circleNum", circleNum)
+            putInt("firstTurn", firstTurn)
+            putSerializable("playersCardRect", playersCardRect)
+        }
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        Log.d("FIELD_DEBUG", "onRestore $state")
+        var savedState = state
+        if (savedState is Bundle) {
+            gameNum = savedState.getInt("gameNum")
+            circleNum = savedState.getInt("circleNum")
+            firstTurn = savedState.getInt("firstTurn")
+            playersCardRect.putAll(savedState.getSerializable("playersCardRect") as HashMap<PlayerId, RectF>)
+            savedState = savedState.getParcelable("superState")
+        }
+        super.onRestoreInstanceState(savedState)
     }
 
     private fun getModeName(gameNum: Int): String = context.getString(when (gameNum) {

@@ -8,7 +8,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.callbacks.onCancel
-import com.afollestad.materialdialogs.callbacks.onDismiss
 import ru.spbstu.king_game.R
 import ru.spbstu.king_game.data.vo.game.GameStateVO
 import ru.spbstu.king_game.databinding.FragmentCurrentGameBinding
@@ -61,7 +60,7 @@ class CurrentGameFragment : Fragment(), BackHandler {
                         MaterialDialog(requireContext())
                             .title(R.string.game_over)
                             .message(text = "Победитель: ${it.players[it.winner].name}")
-                            .onDismiss { activity?.onBackPressed() }
+                            .onCancel { activity?.onBackPressed() }
                             .show()
                         gameStateController.onGameClosed()
                         DependencyProvider.gameStateController = null
@@ -79,7 +78,7 @@ class CurrentGameFragment : Fragment(), BackHandler {
                     is GameStateVO.Cancelled -> {
                         MaterialDialog(requireContext())
                             .title(R.string.game_cancelled)
-                            .onDismiss { parentFragmentManager.popBackStack() }
+                            .onCancel { parentFragmentManager.popBackStack() }
                             .show()
                         gameStateController.onGameClosed()
                         DependencyProvider.gameStateController = null
@@ -91,14 +90,17 @@ class CurrentGameFragment : Fragment(), BackHandler {
                         pausedDialog = MaterialDialog(requireContext())
                             .title(R.string.game_prepared)
                             .noAutoDismiss()
-                            .onDismiss { onExitClick() }
+                            .onCancel { onExitClick() }
                             .cancelOnTouchOutside(false)
                             .show { }
                     }
                     is GameStateVO.Error -> {
                         pausedDialog = MaterialDialog(requireContext())
                             .title(text = it.errorType.text)
-                            .onDismiss { activity?.onBackPressed() }
+                            .positiveButton(text = "Повторить") {
+                                DependencyProvider.gameStateController?.onRetryRequest() ?: parentFragmentManager.popBackStack()
+                            }
+                            .onCancel { activity?.onBackPressed() }
                             .show { }
                         gameStateController.onGameClosed()
                         DependencyProvider.gameStateController = null
@@ -126,6 +128,9 @@ class CurrentGameFragment : Fragment(), BackHandler {
     }
 
     override fun onBackPressed(): Boolean {
+        if (parentFragmentManager.findFragmentByTag("RULES_FRAGMENT") != null) {
+            return false
+        }
         onExitClick()
         return true
     }

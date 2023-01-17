@@ -12,4 +12,5 @@ interface GameStateController {
     fun onGameClosed()
     fun onPauseRequest()
     fun onResumeRequest()
+    fun onRetryRequest()
 }

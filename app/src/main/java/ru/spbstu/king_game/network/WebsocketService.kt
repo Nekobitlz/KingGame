@@ -16,19 +16,12 @@ class WebsocketService(
 ) {
 
     private var session: DefaultClientWebSocketSession? = null
+    private var webSocketConnectionJob: Job? = null
     private val sendCommandFlow = MutableSharedFlow<WebsocketRequest>(1)
     private val eventFlow = MutableSharedFlow<WebsocketResponse>()
 
     init {
-        val handler = CoroutineExceptionHandler { context, exception ->
-            CoroutineScope(context).launch {
-                Logger.e("WebSocket: got server error with exception ${exception.stackTraceToString()}")
-                eventFlow.emit(WebsocketResponse.Error(ErrorType.SERVER_ERROR))
-            }
-        }
-        CoroutineScope(Dispatchers.IO).launch(handler) {
-            startWebsocket()
-        }
+        start()
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -62,6 +55,7 @@ class WebsocketService(
                 Logger.e("WebSocket: error while parse gameState $e, trying to parse session")
                 val event = converter.deserialize<WebsocketResponse.OpenSession>(frame, charset)
                 eventFlow.emit(event)
+                Logger.e("WebSocket: session successfully parsed")
             }
         }.launchIn(session)
         sendCommandFlow.asSharedFlow().onEach {
@@ -81,10 +75,28 @@ class WebsocketService(
     }
 
     fun sendCommand(command: WebsocketRequest) {
+        if (!isConnected()) {
+            start()
+        }
         CoroutineScope(Dispatchers.IO).launch {
             sendCommandFlow.emit(command)
         }
     }
+
+    private fun start() {
+        val handler = CoroutineExceptionHandler { context, exception ->
+            CoroutineScope(context).launch {
+                Logger.e("WebSocket: got server error with exception ${exception.stackTraceToString()}")
+                eventFlow.emit(WebsocketResponse.Error(ErrorType.SERVER_ERROR))
+            }
+        }
+        webSocketConnectionJob?.takeIf { !it.isCancelled }?.cancel()
+        webSocketConnectionJob = CoroutineScope(Dispatchers.IO).launch(handler) {
+            startWebsocket()
+        }
+    }
+
+    private fun isConnected() = session?.isActive == true
 
     fun observeEvent() = eventFlow.asSharedFlow()
 }

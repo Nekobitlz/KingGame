@@ -86,4 +86,13 @@ class WebsocketGameStateController(
             )
         )
     }
+
+    override fun onRetryRequest() {
+        websocketService.sendCommand(
+            WebsocketRequest.SendAction(
+                gameSessionId, currentUserRepository.currentUserId.orEmpty(),
+                Action.reconnect,
+            )
+        )
+    }
 }
