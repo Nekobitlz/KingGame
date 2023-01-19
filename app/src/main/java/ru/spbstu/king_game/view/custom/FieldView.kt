@@ -130,12 +130,19 @@ class FieldView @JvmOverloads constructor(
 
     private fun getModeName(gameNum: Int): String = context.getString(when (gameNum) {
         1 -> R.string.rule_1_title
-        2 -> R.string.rule_2_title
-        3 -> R.string.rule_3_title
-        4 -> R.string.rule_4_title
-        5 -> R.string.rule_5_title
-        6 -> R.string.rule_6_title
-        else -> R.string.rule_7_title
+        2 -> R.string.rule_3_title
+        3 -> R.string.rule_4_title
+        4 -> R.string.rule_2_title
+        5 -> R.string.rule_6_title
+        6 -> R.string.rule_5_title
+        7 -> R.string.rule_8_title
+        8 ->R.string.rule_7_title
+        9 -> R.string.rule_9_title
+        10 -> R.string.rule_10_title
+        11 -> R.string.rule_11_title
+        12 -> R.string.rule_12_title
+        13 -> R.string.rule_13_title
+        else -> R.string.rule_14_title
     })
 
     private fun drawTitle(canvas: Canvas, currentMode: String) {

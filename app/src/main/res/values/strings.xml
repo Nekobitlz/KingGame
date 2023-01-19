@@ -34,4 +34,11 @@
     <string name="no">Нет</string>
     <string name="game_rules_title">Правила игры</string>
     <string name="name_field_hint">Введите имя</string>
+    <string name="rule_8_title">Не брать все подряд</string>
+    <string name="rule_9_title">Брать мальчиков</string>
+    <string name="rule_10_title">Брать девочек</string>
+    <string name="rule_11_title">Брать червей</string>
+    <string name="rule_12_title">Брать кинга</string>
+    <string name="rule_13_title">Брать 2 последние взятки</string>
+    <string name="rule_14_title">Брать все подряд</string>
 </resources>
